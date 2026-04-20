@@ -22,6 +22,7 @@ import {
   Search,
   ChevronRight,
   CheckCircle,
+  ShieldCheck,
   Palette,
   Key,
   Info,
@@ -63,34 +64,42 @@ export default function App() {
       setUser(u);
       if (u) {
         setCurrentScreen('home');
-      } else if (currentScreen !== 'loading') {
-        setCurrentScreen('login');
+      } else {
+        // Only set to login if we are not waiting for a redirect or initial loading
+        if (currentScreen !== 'loading') {
+          setCurrentScreen('login');
+        }
       }
     });
 
+    return () => unsubscribe();
+  }, []); // Only on mount
+
+  useEffect(() => {
     // Handle the redirect result (Crucial for APK/WebView)
-    getRedirectResult(auth)
-      .then((result) => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
         if (result) {
           const email = result.user.email || '';
           if (email && !email.endsWith('@smp.belajar.id')) {
-            signOut(auth);
+            await signOut(auth);
             setLoginError('Akses ditolak. Gunakan akun @smp.belajar.id');
             setCurrentScreen('login');
           } else if (email) {
             setCurrentScreen('home');
           }
         }
-      })
-      .catch((error) => {
+      } catch (error: any) {
         console.error("Redirect error:", error);
         if (!error.message.includes('process is being protected')) {
-          setLoginError("Login gagal. Cek koneksi Anda.");
+          setLoginError("Sistem mendeteksi aktivitas login. Jika macet, silakan segarkan halaman.");
         }
-      });
+      }
+    };
 
-    return () => unsubscribe();
-  }, [currentScreen]);
+    handleRedirect();
+  }, []); // Only check on initial mount
 
   useEffect(() => {
     // Simulated splash screen
@@ -103,7 +112,7 @@ export default function App() {
        } else {
          setCurrentScreen('login');
        }
-    }, 3000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, []);
 
