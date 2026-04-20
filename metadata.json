@@ -1,0 +1,6 @@
+{
+  "name": "Exambro Pro",
+  "description": "Advanced Exam Browser with enhanced stability and integrated assistant features.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
