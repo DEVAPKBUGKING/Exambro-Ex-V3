@@ -39,7 +39,7 @@ import FloatingSecretBar from './components/FloatingSecretBar';
 
 // Firebase
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -61,10 +61,34 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (!u && currentScreen !== 'loading') {
+      if (u) {
+        setCurrentScreen('home');
+      } else if (currentScreen !== 'loading') {
         setCurrentScreen('login');
       }
     });
+
+    // Handle the redirect result (Crucial for APK/WebView)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          const email = result.user.email || '';
+          if (email && !email.endsWith('@smp.belajar.id')) {
+            signOut(auth);
+            setLoginError('Akses ditolak. Gunakan akun @smp.belajar.id');
+            setCurrentScreen('login');
+          } else if (email) {
+            setCurrentScreen('home');
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Redirect error:", error);
+        if (!error.message.includes('process is being protected')) {
+          setLoginError("Login gagal. Cek koneksi Anda.");
+        }
+      });
+
     return () => unsubscribe();
   }, [currentScreen]);
 
@@ -86,17 +110,27 @@ export default function App() {
   const handleLogin = async () => {
     try {
       setLoginError(null);
-      const result = await signInWithPopup(auth, googleProvider);
-      const email = result.user.email || '';
       
-      // Restriction: must be @smp.belajar.id
-      if (!email.endsWith('@smp.belajar.id')) {
-        await signOut(auth);
-        setLoginError('Akses ditolak. Gunakan akun @smp.belajar.id');
-        return;
+      // Detect if we are in a mobile WebView (like Kodular/APK)
+      const userAgent = navigator.userAgent || '';
+      const isWebView = /wv|Kodular|BuiltWithKodular/i.test(userAgent);
+      
+      if (isWebView) {
+        // Use Redirect for APK/Kodular to avoid white screen popup issues
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        // Use Popup for normal desktop browser preview
+        const result = await signInWithPopup(auth, googleProvider);
+        const email = result.user.email || '';
+        
+        if (!email.endsWith('@smp.belajar.id')) {
+          await signOut(auth);
+          setLoginError('Akses ditolak. Gunakan akun @smp.belajar.id');
+          return;
+        }
+        
+        setCurrentScreen('home');
       }
-      
-      setCurrentScreen('home');
     } catch (error: any) {
       console.error("Login Error:", error);
       setLoginError('Gagal login. Silakan coba lagi.');
