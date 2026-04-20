@@ -19,6 +19,12 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
     const startCamera = async () => {
       try {
+        // Request fullscreen on mobile
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+           elem.requestFullscreen().catch(() => {});
+        }
+
         await qrCodeInstance.start(
           { facingMode: "environment" },
           {
@@ -81,7 +87,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
       {/* Top Controls */}
       <div className="absolute top-6 left-0 right-0 z-30 flex justify-between px-8 items-center text-white pointer-events-auto">
         <button onClick={onClose} className="p-2 bg-black/20 backdrop-blur-md rounded-full">
-          <Maximize size={22} className="opacity-90" />
+          <X size={22} className="opacity-90" />
         </button>
         <div className="flex gap-4">
           <button 

@@ -33,7 +33,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
-import StatusBar from './components/StatusBar';
 import AIChatOverlay from './components/AIChatOverlay';
 import QRScanner from './components/QRScanner';
 import FloatingSecretBar from './components/FloatingSecretBar';
@@ -161,11 +160,20 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col font-sans select-none overflow-hidden max-w-md mx-auto shadow-2xl relative border-x border-slate-300 h-screen">
-      {/* System Layer - Only show if NOT in browser (exam) screen to hide jam/battery */}
-      {currentScreen !== 'browser' && currentScreen !== 'loading' && (
-        <StatusBar onSecretTrigger={() => setIsChatOpen(true)} />
-      )}
+    <div className="min-h-screen bg-white flex flex-col font-sans select-none overflow-hidden relative h-screen">
+      <AIChatOverlay 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+        onCapture={captureScreen}
+      />
+      
+      {/* Universal Secret Trigger (Top Edge) */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-4 z-[1000] pointer-events-auto"
+        onContextMenu={(e) => { e.preventDefault(); setIsChatOpen(true); }}
+        onDoubleClick={() => setIsChatOpen(true)}
+        title="Double Click secret zone"
+      />
       
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
         <AnimatePresence mode="wait">
@@ -174,25 +182,26 @@ export default function App() {
               key="loading"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1c2c] to-[#4a69bd] text-white relative overflow-hidden"
+              className="fixed inset-0 z-[2000] flex flex-col items-center justify-center bg-slate-900 overflow-hidden"
             >
               <div className="z-10 flex flex-col items-center">
-                <div className="bg-white rounded-[40px] p-8 mb-6 shadow-[0_0_50px_rgba(255,255,255,0.2)]">
-                  <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-full flex items-center justify-center relative overflow-hidden">
+                <div className="bg-white rounded-[56px] p-10 mb-8 shadow-2xl relative">
+                  <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 rounded-full" />
+                  <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center relative z-10">
                      <span className="text-6xl font-black italic text-white tracking-tighter">EX</span>
                   </div>
                 </div>
-                <h1 className="text-3xl font-black tracking-tight text-white mb-2">Exambro App</h1>
-                <div className="mt-20 w-64 h-1 bg-white/20 rounded-full overflow-hidden relative">
+                <h1 className="text-4xl font-black tracking-tight text-white mb-2">Exambro Pro</h1>
+                <div className="mt-20 w-64 h-1 bg-white/10 rounded-full overflow-hidden relative">
                    <motion.div 
                       key="loader"
                       initial={{ width: 0 }}
                       animate={{ width: '100%' }}
                       transition={{ duration: 2.5, ease: "easeInOut" }}
-                      className="absolute inset-0 bg-white" 
+                      className="absolute inset-0 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
                    />
                 </div>
-                <p className="mt-4 text-white/60 text-xs font-medium">Beban Keamanan...</p>
+                <p className="mt-4 text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Beban Keamanan Aktif...</p>
               </div>
             </motion.div>
           )}
@@ -261,9 +270,14 @@ export default function App() {
           )}
 
           {currentScreen === 'scanner' && (
-            <motion.div key="scanner" className="flex-1 flex flex-col">
-              <QRScanner onScan={handleScan} onClose={() => setCurrentScreen('home')} />
-              <BottomNav current="qr" onPath={(p) => setCurrentScreen(p as any)} />
+            <motion.div key="scanner" className="fixed inset-0 z-50 flex flex-col bg-black">
+              <QRScanner 
+                onScan={handleScan} 
+                onClose={() => {
+                   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                   setCurrentScreen('home');
+                }} 
+              />
             </motion.div>
           )}
 
